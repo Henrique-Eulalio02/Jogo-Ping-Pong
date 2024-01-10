@@ -14,6 +14,10 @@
     gapX = 10
 
     const lineWidth = 15
+    const mouse = {
+      x: 0,
+      y: 0
+    }
 
     const field = {
       w: window.innerWidth,
@@ -41,48 +45,118 @@
 
     const leftPaddle = {
       x: gapX,
-      y: 100,
+      y: 0,
       w: line.w,
       h: 200,
+      _move: function() {
+        this.y = mouse.y - (this.h / 2)
+      },
       draw: function() {
         // criando raquete esquerda
         canvasCtx.fillRect(this.x, this.y, this.w, this.h)
+        this._move()
       }
     }
 
     const rightPaddle = {
       x: field.w - line.w - gapX,
-      y: 100,
+      y: 0,
       w: line.w,
       h: 200,
+      speed: 5,
+      _move: function() {
+        if(this.y + this.h / 2 < ball.y + ball.r) {
+          this.y += this.speed
+        } else {
+          this.y -= this.speed
+        }
+      },
+      _speedUp: function () {
+        this.speed += 3
+      },
       draw: function() {
         // criando raquete esquerda
         canvasCtx.fillRect(this.x, this.y, this.w, this.h)
+        this._move()
       }
     }
 
     const ball = {
-      x: 300,
-      y: 200,
-      r: 20,
-      draw: function() {
-        canvasCtx.fillStyle = '#ffffff'
-        // criando a bolinha
-        canvasCtx.beginPath()
-        // arc(x, y, r, 0, 0 * Math.PI, false): x, y -> correspondentes as posições cartesianas
-        // r = raio -> vai definir o tamanho da bolinha
-        // 0 = onde inicia a rotação
-        // 2 * Math.PI = criação de 4 arcos
-        // false = sentido que o arco gira e é criado
-        canvasCtx.arc(this.x, this.y, this.r, 0, 2 * Math.PI, false)
-        canvasCtx.fill()
+        x: field.w / 2,
+        y: field.h / 2,
+        r: 20,
+        speed: 5,
+        directionX: 1,
+        directionY: 1,
+        _calcPosition: function () {
+          if(this.x > field.w - this.r - rightPaddle.w - gapX) {
+            if(this.y + this.r > rightPaddle.y && this.y - this.r < rightPaddle.y + rightPaddle.h) {
+              this._reverseX()
+            } else {
+              score._incrementHuman()
+              this._pointUp()
+            }
+          }
+
+          if(this.x < this.r + leftPaddle.w + gapX) {
+            if(this.y + this.r > leftPaddle.y && this.y - this.r < leftPaddle.y + leftPaddle.h) {
+              this._reverseX()
+            } else {
+              score._incrementComputer()
+              this._pointUp()
+            }
+          }
+
+          if((this.y - this.r < 0 && this.directionY < 0) || (this.y > field.h - this.r && this.directionY > 0)) {
+            this._reverseY()
+          }
+        },
+        _reverseX: function () {
+          this.directionX *= -1
+        },
+        _reverseY: function () {
+          this.directionY *= -1
+        },
+        _move: function () {
+          this.x += this.directionX * this.speed
+          this.y += this.directionY * this.speed
+        },
+        _speedUp: function () {
+          this.speed += 5
+        },
+        _pointUp: function () {
+          this._speedUp()
+          rightPaddle._speedUp()
+          
+          this.x = field.w / 2
+          this.y = field.h / 2
+        },
+        draw: function () {
+          canvasCtx.fillStyle = "#ffffff"
+          canvasCtx.beginPath()
+          // arc(x, y, r, 0, 0 * Math.PI, false): x, y -> correspondentes as posições cartesianas
+          // r = raio -> vai definir o tamanho da bolinha
+          // 0 = onde inicia a rotação
+          // 2 * Math.PI = criação de 4 arcos
+          // false = sentido que o arco gira e é criado
+          canvasCtx.arc(this.x, this.y, this.r, 0, 2 * Math.PI, false)
+          canvasCtx.fill()
+
+          this._calcPosition()
+          this._move()
+        },
       }
-    }
 
     const score = {
-      human: 3,
-      computer: 1,
+      human: 0,
+      computer: 0,
       w: field.w,
+      _incrementHuman: function () {
+        this.human++
+      },
+      _incrementComputer: function () {
+        this.computer++
+      },
       draw: function() {
         // criando o placar
         canvasCtx.font = 'bold 72px Arial'
@@ -108,8 +182,32 @@
       ball.draw()
     }
 
+    window.animateFrame = (function() {
+      return (
+        window.requestAnimationFrame ||
+        window.webkitRequestAnimationFrame ||
+        window.mozRequestAnimationFrame ||
+        window.oRequestAnimationFrame ||
+        window.msRequestAnimationFrame ||
+        function(callback) {
+          return window.setTimeout(callback, 1000 / 60)
+        }
+      )
+    })()
+
+    function main() {
+      animateFrame(main)
+      draw()
+    }
+
     setup()
-    draw()
+    main()
+
+    canvasEl.addEventListener('mousemove', function(e) {
+      mouse.x = e.pageX
+      mouse.y = e.pageY
+    })
+
   </script>
 </body>
 </html>
